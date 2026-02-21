@@ -1,0 +1,168 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tieg Digital Hub</title>
+<style>
+body,html{margin:0;padding:0;font-family:Segoe UI,sans-serif;background:#f3f6fb}
+nav{background:#0f172a;color:#fff;padding:14px;text-align:center;position:sticky;top:0;z-index:1000}
+nav a{color:#fff;margin:0 10px;text-decoration:none;font-weight:600}
+header{background:#1e3a8a;color:#fff;padding:60px 20px;text-align:center}
+.container{max-width:1000px;margin:auto;padding:40px 20px}
+.card{background:#fff;padding:20px;border-radius:12px;margin-bottom:20px;box-shadow:0 6px 18px rgba(0,0,0,.08)}
+.btn{background:#ff7e5f;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;cursor:pointer;border:none}
+.btn:hover{opacity:.9}/* CHAT PANEL */ #chatPanel{position:fixed;top:0;right:-100%;width:100%;max-width:500px;height:100%;background:#fff;display:flex;flex-direction:column;transition:.35s;z-index:3000} #chatPanel.open{right:0} .chatHeader{background:#0f172a;color:#fff;padding:15px;display:flex;justify-content:space-between;align-items:center} #chatMessages{flex:1;overflow-y:auto;padding:15px;background:#f8fafc;display:flex;flex-direction:column} .msg{max-width:80%;padding:10px 12px;border-radius:10px;margin-bottom:8px;font-size:14px;word-wrap:break-word} .userMsg{background:#ff7e5f;color:#fff;align-self:flex-end} .adminMsg{background:#e2e8f0;color:#111;align-self:flex-start} .chatInputBox{display:flex;padding:10px;border-top:1px solid #ddd} .chatInputBox input{flex:1;padding:10px;border:1px solid #ccc;border-radius:8px} .chatInputBox button{margin-left:8px;padding:10px;border:none;border-radius:8px;background:#ff7e5f;color:#fff;cursor:pointer} .chatInputBox button:hover{opacity:.9}
+
+@media(max-width:768px){#chatPanel{width:100%;max-width:100%;}}
+
+/* AUTH MODAL */ .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);justify-content:center;align-items:center;z-index:4000} .modalContent{background:#fff;padding:30px;border-radius:12px;width:90%;max-width:350px;text-align:center} .modalContent input{width:100%;padding:10px;margin:8px 0;border:1px solid #ccc;border-radius:6px} .error{color:red;font-size:14px} .authBtn{position:fixed;top:20px;right:20px;z-index:2000} .userList{max-height:150px;overflow-y:auto;margin-bottom:10px;border:1px solid #ddd;padding:5px;border-radius:6px;} .userList div{padding:5px;cursor:pointer;border-bottom:1px solid #eee;} .userList div:hover{background:#f0f0f0;} </style>
+
+</head>
+<body><nav>
+<a href="#home">Home</a>
+<a href="#services">Services</a>
+<a href="#pricing">Pricing</a>
+<a href="#contact">Contact</a>
+<a href="#" onclick="openChat()">Support</a>
+</nav><header id="home">
+<h1>Tieg Digital Hub</h1>
+<p>Premium business websites & digital solutions</p>
+</header><section class="container" id="services">
+<div class="card"><h3>Web Development</h3><p>Modern responsive business websites.</p></div>
+<div class="card"><h3>Mobile Apps</h3><p>Android & iOS solutions.</p></div>
+<div class="card"><h3>UI/UX Design</h3><p>Beautiful and converting designs.</p></div>
+</section><section class="container" id="pricing">
+<div class="card">
+<h3>Basic Website</h3>
+<p>$500 - Single-page site</p>
+<button class="btn" onclick="buyNow('Basic Website - $500')">Buy Now</button>
+</div>
+<div class="card">
+<h3>Pro Website</h3>
+<p>$800 - Multi-page site with blog</p>
+<button class="btn" onclick="buyNow('Pro Website - $800')">Buy Now</button>
+</div>
+<div class="card">
+<h3>Premium Website</h3>
+<p>$1200 - Full custom solution with support & maintenance</p>
+<button class="btn" onclick="buyNow('Premium Website - $1200')">Buy Now</button>
+</div>
+</section><section class="container" id="contact">
+<div class="card"><h3>Contact</h3><p>Use chat for support or inquiries</p></div>
+</section><!-- CHAT PANEL --><div id="chatPanel">
+<div class="chatHeader">
+<span>Live Support</span>
+<button class="btn" onclick="closeChat()">Home</button>
+</div>
+<div id="chatUsers" class="userList" style="display:none"></div>
+<div id="chatMessages"></div>
+<div class="chatInputBox">
+<input id="chatInput" placeholder="Type message...">
+<button onclick="sendMsg()">Send</button>
+</div>
+</div><!-- AUTH --><div class="authBtn">
+<button class="btn" onclick="openAuth()">Login</button>
+<button class="btn" onclick="logoutUser()">Logout</button>
+</div><div id="authModal" class="modal">
+<div class="modalContent">
+<h3 id="authTitle">Login</h3>
+<input id="email" placeholder="Email">
+<input id="pass" type="password" placeholder="Password">
+<button class="btn" onclick="submitAuth()">Continue</button>
+<p id="authError" class="error"></p>
+<p><a href="#" onclick="toggleAuth()" id="toggleLink">Create account</a></p>
+<p><a href="#" onclick="resetPass()">Forgot password</a></p>
+</div>
+</div><script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script><script>
+const firebaseConfig={apiKey:"AIzaSyDzeFZfqReHMHaZMlIfrfqAyjG3v2nfj-4",authDomain:"content-platform-5a902.firebaseapp.com",projectId:"content-platform-5a902"};
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth();
+const db=firebase.firestore();
+const adminEmail="tiegmicheal@gmail.com";
+let currentUser=null;
+let mode="login";
+let unsub=null;
+let activeConversation=null;
+
+function openAuth(){document.getElementById("authModal").style.display="flex"}
+function closeAuth(){document.getElementById("authModal").style.display="none";showErr("")}
+function toggleAuth(){mode=mode==="login"?"signup":"login";document.getElementById("authTitle").innerText=mode==="login"?"Login":"Sign Up";document.getElementById("toggleLink").innerText=mode==="login"?"Create account":"Login"}
+function showErr(t){document.getElementById("authError").innerText=t}
+
+function submitAuth(){
+const email=document.getElementById("email").value.trim();
+const pass=document.getElementById("pass").value.trim();
+if(!email||!pass){showErr("Enter email & password");return}
+if(mode==="login"){
+auth.signInWithEmailAndPassword(email,pass).then(r=>{currentUser=r.user;closeAuth();openChat();updateOnline(true);}).catch(()=>showErr("Incorrect email or password"));
+}else{
+auth.createUserWithEmailAndPassword(email,pass).then(r=>{currentUser=r.user;closeAuth();openChat();updateOnline(true);}).catch(()=>showErr("Account creation failed"));
+}}
+
+function resetPass(){
+const email=document.getElementById("email").value.trim();
+if(!email){showErr("Enter email first");return}
+auth.sendPasswordResetEmail(email).then(()=>showErr("Password reset email sent"));
+}
+
+function logoutUser(){
+if(currentUser){updateOnline(false);auth.signOut();currentUser=null;closeChat();}
+}
+
+auth.onAuthStateChanged(u=>{currentUser=u; if(currentUser) updateOnline(true);});
+
+function updateOnline(status){
+if(!currentUser) return;
+db.collection("users").doc(currentUser.uid).set({email:currentUser.email,online:status},{merge:true});
+}
+
+function openChat(){
+if(!currentUser){openAuth();return}
+document.getElementById("chatPanel").classList.add("open");
+if(currentUser.email===adminEmail){document.getElementById("chatUsers").style.display="block";loadUsers();}else{
+document.getElementById("chatUsers").style.display="none"; activeConversation=currentUser.uid; startListener(activeConversation);}}
+function closeChat(){document.getElementById("chatPanel").classList.remove("open");if(unsub)unsub();}
+
+function buyNow(packageName){openChat();sendMsg(packageName);}
+
+function sendMsg(textParam){
+if(!currentUser || !activeConversation) return;
+const text=textParam||document.getElementById("chatInput").value.trim();
+if(!text) return;
+db.collection("conversations").doc(activeConversation).collection("messages").add({text:text,sender:currentUser.email===adminEmail?"admin":"user",email:currentUser.email,time:Date.now()});
+document.getElementById("chatInput").value="";
+}
+
+function loadUsers(){
+db.collection("users").onSnapshot(snap=>{
+const userList=document.getElementById("chatUsers");
+userList.innerHTML="";
+snap.forEach(d=>{
+const u=d.data();
+if(u.email!==adminEmail){
+const div=document.createElement("div");
+div.innerText=u.email+(u.online?" (Online)":" (Offline)");
+div.onclick=()=>{activeConversation=d.id; startListener(activeConversation);};
+userList.appendChild(div);
+}
+});
+});
+}
+
+function startListener(uid){
+if(unsub) unsub();
+const box=document.getElementById("chatMessages");
+unsub=db.collection("conversations").doc(uid).collection("messages").orderBy("time").onSnapshot(snap=>{
+box.innerHTML="";
+snap.forEach(d=>{
+const m=d.data();
+const div=document.createElement("div");
+div.className="msg "+(m.sender==="admin"?"adminMsg":"userMsg");
+div.innerText=(m.sender==="admin"?"Admin: ":"You: ")+m.text;
+box.appendChild(div);
+});
+box.scrollTop=box.scrollHeight;
+});
+}
+</script></body>
+</html>
