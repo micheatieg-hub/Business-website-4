@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI SaaS Builder OS</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    .tab { cursor: pointer; }
+    .hidden { display: none; }
+  </style>
+</head>
+
+<body class="bg-zinc-950 text-white">
+
+<div class="max-w-6xl mx-auto p-6">
+
+  <!-- HEADER -->
+  <h1 class="text-3xl font-bold mb-6">⚡ AI SaaS Builder OS</h1>
+
+  <!-- TABS -->
+  <div class="flex gap-2 mb-4">
+    <button class="tab px-4 py-2 bg-zinc-800 rounded" onclick="showTab('builder')">Builder</button>
+    <button class="tab px-4 py-2 bg-zinc-800 rounded" onclick="showTab('history')">History</button>
+    <button class="tab px-4 py-2 bg-zinc-800 rounded" onclick="showTab('admin')">Admin</button>
+    <button class="tab px-4 py-2 bg-zinc-800 rounded" onclick="showTab('settings')">Settings</button>
+  </div>
+
+  <!-- BUILDER -->
+  <div id="builder">
+
+    <div class="bg-zinc-900 p-4 rounded-xl space-y-4">
+
+      <input
+        id="prompt"
+        class="w-full p-3 rounded bg-zinc-800 outline-none"
+        placeholder="Describe your SaaS app idea..."
+      />
+
+      <button
+        id="btn"
+        onclick="buildApp()"
+        class="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700"
+      >
+        Generate App
+      </button>
+
+      <pre
+        id="result"
+        class="bg-black p-4 rounded mt-4 overflow-auto text-sm whitespace-pre-wrap"
+      ></pre>
+
+    </div>
+
+  </div>
+
+  <!-- HISTORY -->
+  <div id="history" class="hidden">
+    <div class="bg-zinc-900 p-4 rounded-xl">
+      <h2 class="font-bold mb-3">History</h2>
+      <div id="historyList" class="space-y-3"></div>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div id="admin" class="hidden">
+    <div class="bg-zinc-900 p-4 rounded-xl">
+      <p>Admin panel (analytics, logs, users)</p>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="settings" class="hidden">
+    <div class="bg-zinc-900 p-4 rounded-xl">
+      <p>Settings (Supabase connected, AI ready)</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SUPABASE_URL = "https://jzyejyyismmglrsqvhsr.supabase.co";
+const FUNCTION_URL = `${SUPABASE_URL}/functions/v1/swift-action`;
+
+let history = [];
+
+function showTab(tab) {
+  document.querySelectorAll("#builder, #history, #admin, #settings")
+    .forEach(el => el.classList.add("hidden"));
+
+  document.getElementById(tab).classList.remove("hidden");
+}
+
+async function buildApp() {
+  const prompt = document.getElementById("prompt").value;
+  const resultBox = document.getElementById("result");
+  const btn = document.getElementById("btn");
+
+  if (!prompt) return;
+
+  resultBox.textContent = "Generating...";
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(FUNCTION_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // If your function requires auth, add:
+        // "Authorization": "Bearer YOUR_SUPABASE_ANON_KEY"
+      },
+      body: JSON.stringify({ prompt })
+    });
+
+    const data = await res.json();
+
+    const output = data.result || "No response";
+
+    resultBox.textContent = output;
+
+    // Save to history
+    history.unshift({
+      prompt,
+      result: output
+    });
+
+    renderHistory();
+
+  } catch (err) {
+    resultBox.textContent = "❌ Error connecting to Supabase";
+  }
+
+  btn.disabled = false;
+}
+
+function renderHistory() {
+  const list = document.getElementById("historyList");
+  list.innerHTML = "";
+
+  history.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "bg-zinc-800 p-3 rounded";
+
+    div.innerHTML = `
+      <p class="text-xs text-gray-400">Prompt</p>
+      <p class="mb-2">${item.prompt}</p>
+
+      <p class="text-xs text-gray-400">Result</p>
+      <pre class="text-xs whitespace-pre-wrap">${item.result}</pre>
+    `;
+
+    list.appendChild(div);
+  });
+}
+</script>
+
+</body>
+</html>
